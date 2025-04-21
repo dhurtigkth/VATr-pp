@@ -125,6 +125,99 @@ class TextDataset:
         char_counts = {k: 1.0 / (v / total) for k, v in char_counts.items()}
 
         return char_counts
+    
+class TextDatasetRiksarkivet:
+
+    def __init__(self, dataset_dict, collator_resolution, num_examples=15, target_transform=None, min_virtual_size=0, validation=False, debug=False):
+        self.NUM_EXAMPLES = num_examples
+        self.debug = debug
+        self.min_virtual_size = min_virtual_size
+
+        subset = 'test' if validation else 'train'
+        self.IMG_DATA = dataset_dict
+        self.IMG_DATA = dict(list(self.IMG_DATA.items()))  # [:NUM_WRITERS])
+        if 'None' in self.IMG_DATA.keys():
+            del self.IMG_DATA['None']
+
+        self.alphabet = ''.join(sorted(set(''.join(d['label'] for d in sum(self.IMG_DATA.values(), [])))))
+        self.author_id = list(self.IMG_DATA.keys())
+
+        self.transform = get_transform(grayscale=True)
+        self.target_transform = target_transform
+
+        self.collate_fn = TextCollator(collator_resolution)
+
+    def __len__(self):
+        if self.debug:
+            return 16
+        return max(len(self.author_id), self.min_virtual_size)
+
+    @property
+    def num_writers(self):
+        return len(self.author_id)
+
+    def __getitem__(self, index):
+        index = index % len(self.author_id)
+
+        author_id = self.author_id[index]
+
+        self.IMG_DATA_AUTHOR = self.IMG_DATA[author_id]
+        random_idxs = random.choices([i for i in range(len(self.IMG_DATA_AUTHOR))], k=self.NUM_EXAMPLES)
+
+        word_data = random.choice(self.IMG_DATA_AUTHOR)
+        real_img = self.transform(word_data['img'].convert('L'))
+        #print("real_img: ", real_img.shape)
+        real_labels = word_data['label'].encode()
+
+        imgs = [np.array(self.IMG_DATA_AUTHOR[idx]['img'].convert('L')) for idx in random_idxs]
+        #for i in imgs:
+        #    print(i.shape)
+        slabels = [self.IMG_DATA_AUTHOR[idx]['label'].encode() for idx in random_idxs]
+
+        max_width = 192  # [img.shape[1] for img in imgs]
+
+        imgs_pad = []
+        imgs_wids = []
+
+        for img in imgs:
+            img_height, img_width = img.shape[0], img.shape[1]
+            output_img = np.ones((img_height, max_width), dtype='float32') * 255.0
+            output_img[:, :img_width] = img[:, :max_width]
+
+            imgs_pad.append(self.transform(Image.fromarray(output_img.astype(np.uint8))))
+            imgs_wids.append(img_width)
+
+        #for image in imgs_pad:
+        #    print(image.shape)
+
+        imgs_pad = torch.cat(imgs_pad, 0)
+
+        item = {
+            'simg': imgs_pad,   # N images (15) that come from the same author [N (15), H (32), MAX_W (192)]
+            'swids': imgs_wids, # widths of the N images [list(N)]
+            'img': real_img,  # the input image [1, H (32), W]
+            'label': real_labels,  # the label of the input image [byte]
+            'img_path': 'img_path',
+            'idx': 'indexes',
+            'wcl': index,  # id of the author [int],
+            'slabels': slabels,
+            'author_id': author_id
+        }
+        return item
+
+    def get_stats(self):
+        char_counts = defaultdict(lambda: 0)
+        total = 0
+
+        for author in self.IMG_DATA.keys():
+            for data in self.IMG_DATA[author]:
+                for char in data['label']:
+                    char_counts[char] += 1
+                    total += 1
+
+        char_counts = {k: 1.0 / (v / total) for k, v in char_counts.items()}
+
+        return char_counts
 
 
 class TextCollator(object):
@@ -166,6 +259,39 @@ class CollectionTextDataset(Dataset):
         for dataset_name in sorted(datasets.split(',')):
             dataset_file = get_dataset_path(dataset_name, height, file_suffix, datasets_path)
             dataset = dataset_class(dataset_file, **kwargs)
+            self.datasets[dataset_name] = dataset
+        self.alphabet = ''.join(sorted(set(''.join(d.alphabet for d in self.datasets.values()))))
+
+    def __len__(self):
+        return sum(len(d) for d in self.datasets.values())
+
+    @property
+    def num_writers(self):
+        return sum(d.num_writers for d in self.datasets.values())
+
+    def __getitem__(self, index):
+        for dataset in self.datasets.values():
+            if index < len(dataset):
+                return dataset[index]
+            index -= len(dataset)
+        raise IndexError
+
+    def get_dataset(self, index):
+        for dataset_name, dataset in self.datasets.items():
+            if index < len(dataset):
+                return dataset_name
+            index -= len(dataset)
+        raise IndexError
+
+    def collate_fn(self, batch):
+        return self.datasets[self.get_dataset(0)].collate_fn(batch)
+    
+
+class CollectionTextDatasetRiksarkivet(Dataset):
+    def __init__(self, datasets, dataset_dict, dataset_class, file_suffix=None, height=32, **kwargs):
+        self.datasets = {}
+        for dataset_name in sorted(datasets.split(',')):
+            dataset = dataset_class(dataset_dict, **kwargs)
             self.datasets[dataset_name] = dataset
         self.alphabet = ''.join(sorted(set(''.join(d.alphabet for d in self.datasets.values()))))
 
@@ -245,7 +371,7 @@ class FidDataset(Dataset):
         style_dataset = self.STYLE_IMG_DATA if self.STYLE_IMG_DATA is not None else self.IMG_DATA
 
         author_style_images = style_dataset[author_id]
-        random_idxs = np.random.choice(len(author_style_images), NUM_SAMPLES, replace=True)
+        random_idxs = np.random.choice(len(author_style_images), NUM_SAMPLES, replace=False)
         style_images = [np.array(author_style_images[idx]['img'].convert('L')) for idx in random_idxs]
 
         max_width = 192
@@ -281,6 +407,7 @@ class FidDataset(Dataset):
 class FolderDataset:
     def __init__(self, folder_path, num_examples=15, word_lengths=None):
         folder_path = Path(folder_path)
+        print("PATH: ", folder_path)
         self.imgs = list([p for p in folder_path.iterdir() if not p.suffix == '.txt'])
         self.transform = get_transform(grayscale=True)
         self.num_examples = num_examples
@@ -290,7 +417,7 @@ class FolderDataset:
         return len(self.imgs)
 
     def sample_style(self):
-        random_idxs = np.random.choice(len(self.imgs), self.num_examples, replace=False)
+        random_idxs = np.random.choice(len(self.imgs), self.num_examples, replace=True)
         image_names = [self.imgs[idx].stem for idx in random_idxs]
         imgs = [Image.open(self.imgs[idx]).convert('L') for idx in random_idxs]
         if self.word_lengths is None:
