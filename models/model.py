@@ -14,6 +14,10 @@ from .OCR_network import *
 from models.blocks import Conv2dBlock, ResBlocks
 from util.util import loss_hinge_dis, loss_hinge_gen, make_one_hot
 
+#from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+#from PIL import Image
+#import requests
+
 import models.config as config
 from .positional_encodings import PositionalEncoding1D
 from models.unifont_module import UnifontModule
@@ -218,10 +222,22 @@ class VATr(nn.Module):
         self.netW = self.netW.to(self.args.device)
         self.netconverter = strLabelConverter(self.args.alphabet + self.args.special_alphabet)
 
-        self.netOCR = CRNN(self.args).to(self.args.device)
-
+        # Original OCR
+        self.netOCR = CRNN(self.args).to(self.args.device) # OCR HERE
         self.ocr_augmenter = OCRAugment(prob=0.5, no=3)
         self.OCR_criterion = CTCLoss(zero_infinity=True, reduction='none')
+
+        # Riksarkivet OCR
+        #self.netOCR = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+        #self.VEDM = VisionEncoderDecoderModel.from_pretrained('Riksarkivet/trocr-base-handwritten-hist-swe-2')
+        #self.ocr_augmenter = OCRAugment(prob=0.5, no=3)
+        #self.OCR_criterion = CTCLoss(zero_infinity=True, reduction='none')
+        #image = Image.open(img_path)
+        #pixel_values = self.netOCR(images=image, return_tensors="pt").pixel_values
+        #generated_ids = self.VEDM.generate(pixel_values)
+        #generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        #
+
 
         block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[2048]
         self.inception = InceptionV3([block_idx]).to(self.args.device)
@@ -500,7 +516,7 @@ class VATr(nn.Module):
 
         return result
 
-    def compute_real_ocr_loss(self, ocr_network = None):
+    def compute_real_ocr_loss(self, ocr_network = None): # CHANGED to fit Riksarkivets TrOCR
         network = ocr_network if ocr_network is not None else self.netOCR
         real_input = self.ocr_images
         input_images = real_input
@@ -514,12 +530,14 @@ class VATr(nn.Module):
         pred_real = network(input_images)
         preds_size = torch.IntTensor([pred_real.size(0)] * len(input_labels)).detach()
         text_encode, len_text, _ = self.netconverter.encode(input_labels)
+        
 
         loss = self.OCR_criterion(pred_real, text_encode.detach(), preds_size, len_text.detach())
+        #print("loss: ", loss)
 
         return torch.mean(loss[~torch.isnan(loss)])
 
-    def compute_fake_ocr_loss(self, ocr_network = None):
+    def compute_fake_ocr_loss(self, ocr_network = None): # CHANGED to fit Riksarkivets TrOCR
         network = ocr_network if ocr_network is not None else self.netOCR
 
         pred_fake_OCR = network(self.fake)
