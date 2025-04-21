@@ -13,7 +13,7 @@ import torch
 import wandb
 
 from data.dataset import TextDataset, TextDatasetRiksarkivet, CollectionTextDataset, CollectionTextDatasetRiksarkivet
-from dataset_fixer import file_reader
+from data.dataset_fixer import file_reader
 from models.model import VATr
 from util.misc import EpochLossTracker, add_vatr_args, LinearScheduler
 
