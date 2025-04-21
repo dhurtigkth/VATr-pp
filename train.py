@@ -4,11 +4,16 @@ import math
 import time
 import os
 
+from PIL import Image
+
 import numpy as np
+import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1" # CHANGED, needed to be added for some code to run on CPU
 import torch
 import wandb
 
-from data.dataset import TextDataset, CollectionTextDataset
+from data.dataset import TextDataset, TextDatasetRiksarkivet, CollectionTextDataset, CollectionTextDatasetRiksarkivet
+from dataset_fixer import file_reader
 from models.model import VATr
 from util.misc import EpochLossTracker, add_vatr_args, LinearScheduler
 
@@ -21,22 +26,38 @@ def main():
     args = parser.parse_args()
 
     rSeed(args.seed)
-    dataset = CollectionTextDataset(
-        args.dataset, 'files', TextDataset, file_suffix=args.file_suffix, num_examples=args.num_examples,
+    # dataset = CollectionTextDataset(
+    #     args.dataset, 'files', TextDataset, file_suffix=args.file_suffix, num_examples=args.num_examples,
+    #     collator_resolution=args.resolution, min_virtual_size=339, validation=False, debug=False, height=args.img_height
+    # )
+    # #print(dataset.__dict__["datasets"]["IAM"].__dict__["IMG_DATA"]['670'])
+    # datasetval = CollectionTextDataset(
+    #     args.dataset, 'files', TextDataset, file_suffix=args.file_suffix, num_examples=args.num_examples,
+    #     collator_resolution=args.resolution, min_virtual_size=161, validation=True, height=args.img_height
+    # )
+    dataset_train, dataset_val = file_reader("files/riksarkivet_data", 20, args.img_height)
+    dataset = CollectionTextDatasetRiksarkivet(
+        args.dataset, dataset_train, TextDatasetRiksarkivet, file_suffix=args.file_suffix, num_examples=args.num_examples,
         collator_resolution=args.resolution, min_virtual_size=339, validation=False, debug=False, height=args.img_height
     )
-    datasetval = CollectionTextDataset(
-        args.dataset, 'files', TextDataset, file_suffix=args.file_suffix, num_examples=args.num_examples,
-        collator_resolution=args.resolution, min_virtual_size=161, validation=True, height=args.img_height
-    )
 
+    datasetval = CollectionTextDatasetRiksarkivet(
+    args.dataset, dataset_val, TextDatasetRiksarkivet, file_suffix=args.file_suffix, num_examples=args.num_examples,
+    collator_resolution=args.resolution, min_virtual_size=161, validation=True, height=args.img_height
+    )   
+
+    print(dataset.__dict__["datasets"]["riksarkivet_data"].__dict__["IMG_DATA"].keys())
+    #print(dataset.__dict__["datasets"]["riksarkivet_data"].__dict__["IMG_DATA"]["0"])
     args.num_writers = dataset.num_writers
 
     if args.dataset == 'IAM' or args.dataset == 'CVL':
         args.alphabet = 'Only thewigsofrcvdampbkuq.A-210xT5\'MDL,RYHJ"ISPWENj&BC93VGFKz();#:!7U64Q8?+*ZX/%'
     else:
-        args.alphabet = ''.join(sorted(set(dataset.alphabet + datasetval.alphabet)))
+        args.alphabet = ''.join(sorted(set(dataset.alphabet)))
+        #args.alphabet = ''.join(sorted(set(dataset.alphabet + datasetval.alphabet)))
         args.special_alphabet = ''.join(c for c in args.special_alphabet if c not in dataset.alphabet)
+        print("alphabet: ", args.alphabet)
+        print("number of characters: ", len(args.alphabet))
 
     args.exp_name = f"{args.dataset}-{args.num_writers}-{args.num_examples}-LR{args.g_lr}-bs{args.batch_size}-{args.tag}"
 
@@ -46,6 +67,8 @@ def main():
 
     MODEL_PATH = os.path.join(args.save_model_path, args.exp_name)
     os.makedirs(MODEL_PATH, exist_ok=True)
+
+    #print(dataset)
 
     train_loader = torch.utils.data.DataLoader(
         dataset,
@@ -146,6 +169,14 @@ def main():
         losses = loss_tracker.get_epoch_loss()
         page = model._generate_page(model.sdata, model.input['swids'])
         page_val = model._generate_page(data_val['simg'].to(args.device), data_val['swids'])
+
+        print("page: ", page)
+
+        im_to_write = Image.fromarray(page)
+        im_to_write = im_to_write.convert("L")
+        
+        print("writing image to: ", "/Users/david/Riksarkivet/VATr-pp/epoch_" + str(epoch) + ".png")
+        im_to_write.save("/Users/david/Riksarkivet/VATr-pp/epoch_" + str(epoch) + ".png")
 
         d_train, d_val, d_fake = model.compute_d_stats(train_loader, val_loader)
 
