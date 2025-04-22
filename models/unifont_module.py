@@ -29,7 +29,7 @@ class UnifontModule(torch.nn.Module):
     def get_symbols(self, input_type):
         with open(f"files/{input_type}.pickle", "rb") as f:
             symbols = pickle.load(f)
-            print("symbols: ", symbols)
+            #print("symbols: ", symbols)
 
         all_symbols = {sym['idx'][0]: sym['mat'].astype(np.float32) for sym in symbols}
         symbols = []
