@@ -28,6 +28,9 @@ def file_reader(file_path, len_transcr, img_height):
                 continue
             #transcr = ' '.join(line_segment[8:])
             transcr = t[0]
+            if "🜔" in transcr:
+                print("🜔 encountered")
+                continue
             #print(transcr)
             if len(transcr) > 20:
                 continue
