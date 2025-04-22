@@ -498,7 +498,7 @@ def add_vatr_args(parser):
 
     parser.add_argument("--img_height", default=32, type=int)
     parser.add_argument("--resolution", default=16, type=int)
-    parser.add_argument("--batch_size", default=6, type=int)
+    parser.add_argument("--batch_size", default=4, type=int)
     parser.add_argument("--num_examples", default=15, type=int)
     parser.add_argument("--num_writers", default=339, type=int)
 
