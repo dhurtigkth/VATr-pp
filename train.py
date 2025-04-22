@@ -114,9 +114,11 @@ def main():
         raise FileNotFoundError(f'No model found at {checkpoint_path}')
     else:
         if args.feat_model_path is not None and args.feat_model_path.lower() != 'none':
-            print('Loading...', args.feat_model_path)
-            assert os.path.exists(args.feat_model_path)
-            checkpoint = torch.load(args.feat_model_path, map_location=args.device)
+            # resnet_path = args.feat_model_path
+            resnet_path = "/content/resnet_18_pretrained.pth"
+            print('Loading...', resnet_path)
+            assert os.path.exists(resnet_path)
+            checkpoint = torch.load(resnet_path, map_location=args.device)
             checkpoint['model']['conv1.weight'] = checkpoint['model']['conv1.weight'].mean(1).unsqueeze(1)
             del checkpoint['model']['fc.weight']
             del checkpoint['model']['fc.bias']
