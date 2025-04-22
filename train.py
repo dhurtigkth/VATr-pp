@@ -35,7 +35,7 @@ def main():
     #     args.dataset, 'files', TextDataset, file_suffix=args.file_suffix, num_examples=args.num_examples,
     #     collator_resolution=args.resolution, min_virtual_size=161, validation=True, height=args.img_height
     # )
-    dataset_train, dataset_val = file_reader("files/riksarkivet_data", 20, args.img_height)
+    dataset_train, dataset_val = file_reader("/content/Single-Word-Dataset-Fixed", 20, args.img_height)
     dataset = CollectionTextDatasetRiksarkivet(
         args.dataset, dataset_train, TextDatasetRiksarkivet, file_suffix=args.file_suffix, num_examples=args.num_examples,
         collator_resolution=args.resolution, min_virtual_size=339, validation=False, debug=False, height=args.img_height
