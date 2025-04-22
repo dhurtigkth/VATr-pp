@@ -46,7 +46,7 @@ def main():
     collator_resolution=args.resolution, min_virtual_size=161, validation=True, height=args.img_height
     )   
 
-    print(dataset.__dict__["datasets"]["riksarkivet_data"].__dict__["IMG_DATA"].keys())
+    print(dataset.__dict__["datasets"]["Single-Word-Dataset-Fixed"].__dict__["IMG_DATA"].keys())
     #print(dataset.__dict__["datasets"]["riksarkivet_data"].__dict__["IMG_DATA"]["0"])
     args.num_writers = dataset.num_writers
 
