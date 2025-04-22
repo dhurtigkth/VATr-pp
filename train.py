@@ -36,6 +36,7 @@ def main():
     #     collator_resolution=args.resolution, min_virtual_size=161, validation=True, height=args.img_height
     # )
     dataset_train, dataset_val = file_reader("/content/Single-Word-Dataset-Fixed", 20, args.img_height)
+    print("dataset_train: ", len(dataset_train), "dataset_val: ", len(dataset_val))
     dataset = CollectionTextDatasetRiksarkivet(
         args.dataset, dataset_train, TextDatasetRiksarkivet, file_suffix=args.file_suffix, num_examples=args.num_examples,
         collator_resolution=args.resolution, min_virtual_size=339, validation=False, debug=False, height=args.img_height
