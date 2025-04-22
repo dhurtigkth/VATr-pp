@@ -58,8 +58,12 @@ def file_reader(file_path, len_transcr, img_height):
         new_height = img_height
         aspect_ratio = img.width / img.height
         new_width = int(new_height * aspect_ratio)
-        print("new width: ", new_width)
-        img = img.resize((new_width, new_height))
+        #print("new width: ", new_width)
+        if new_width > 10:
+            img = img.resize((new_width, new_height))
+        else:
+            print("too small width")
+            continue
 
 
         if str(writer_name) in dataset_train:
