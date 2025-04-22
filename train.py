@@ -172,13 +172,13 @@ def main():
         page = model._generate_page(model.sdata, model.input['swids'])
         page_val = model._generate_page(data_val['simg'].to(args.device), data_val['swids'])
 
-        print("page: ", page)
+        #print("page: ", page)
 
-        im_to_write = Image.fromarray(page)
-        im_to_write = im_to_write.convert("L")
+        #im_to_write = Image.fromarray(page)
+        #im_to_write = im_to_write.convert("L")
         
-        print("writing image to: ", "/Users/david/Riksarkivet/VATr-pp/epoch_" + str(epoch) + ".png")
-        im_to_write.save("/Users/david/Riksarkivet/VATr-pp/epoch_" + str(epoch) + ".png")
+        #print("writing image to: ", "/Users/david/Riksarkivet/VATr-pp/epoch_" + str(epoch) + ".png")
+        #im_to_write.save("/Users/david/Riksarkivet/VATr-pp/epoch_" + str(epoch) + ".png")
 
         d_train, d_val, d_fake = model.compute_d_stats(train_loader, val_loader)
 
