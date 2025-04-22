@@ -21,7 +21,7 @@ def file_reader(file_path, len_transcr, img_height):
             image_id = line_segment[0].split("-")[1]
             name = line_segment[0]
             writer_name = int(name.split("-")[0])
-            img_path = file_path + "/lines/" + writer_name + "/" + name
+            img_path = file_path + "/lines/" + str(writer_name) + "/" + str(name)
             #t = line_segment[8:].split("|")
             t = line_segment[8:][0].split("|")
             if len(t) > 1:
