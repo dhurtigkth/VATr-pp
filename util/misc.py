@@ -546,7 +546,7 @@ class FakeArgs:
     no_ocr_loss = False
     img_height = 32
     resolution = 16
-    batch_size = 32
+    batch_size = 8
     num_workers = 4
     num_epochs = 100
     lr = 0.0001
