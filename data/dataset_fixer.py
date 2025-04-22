@@ -29,7 +29,9 @@ def file_reader(file_path, len_transcr, img_height):
             #transcr = ' '.join(line_segment[8:])
             transcr = t[0]
             #print(transcr)
-
+            if "☉☽☿♀♂♃♄⦂🜔" in transcr:
+                print("weird sign encountered")
+                continue
             if len(transcr) > 20:
                 continue
             else:
