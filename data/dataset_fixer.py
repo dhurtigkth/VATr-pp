@@ -54,15 +54,15 @@ def file_reader(file_path, len_transcr, img_height):
         img = Image.open(img_path + '.png').convert('RGB') #.convert('L')
 
         # Convert image into new height/width
-        #new_height = img_height
-        #aspect_ratio = img.width / img.height
-        #new_width = int(new_height * aspect_ratio)
+        new_height = img_height
+        aspect_ratio = img.width / img.height
+        new_width = int(new_height * aspect_ratio)
         #print("new width: ", new_width)
-        #if new_width > 10:
-        #    img = img.resize((new_width, new_height))
-        #else:
-        #    print("too small width")
-        #    continue
+        if new_width > 10:
+            img = img.resize((new_width, new_height))
+        else:
+            print("too small width")
+            continue
 
 
         if str(writer_name) in dataset_train:
