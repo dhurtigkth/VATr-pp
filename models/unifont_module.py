@@ -34,9 +34,13 @@ class UnifontModule(torch.nn.Module):
         all_symbols = {sym['idx'][0]: sym['mat'].astype(np.float32) for sym in symbols}
         symbols = []
         for char in self.alphabet:
-            im = all_symbols[ord(char)]
-            im = im.flatten()
-            symbols.append(im)
+            try:
+                im = all_symbols[ord(char)]
+                im = im.flatten()
+                symbols.append(im)
+            except:
+                print("weird symbol encountered: ", char)
+                continue
 
         symbols.insert(0, np.zeros_like(symbols[0]))
         symbols = np.stack(symbols)
